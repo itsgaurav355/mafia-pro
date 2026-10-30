@@ -158,26 +158,25 @@ class _RosterScreenState extends State<RosterScreen> {
                         return;
                       }
 
+                      final nicknameText = nicknameController.text.trim();
+                      final nicknameVal = nicknameText.isEmpty ? null : nicknameText;
+
                       final cubit = context.read<RosterCubit>();
                       bool success;
                       if (existingPlayer == null) {
                         success = await cubit.addPlayer(
-                              name: name,
-                              nickname: nicknameController.text.trim().isEmpty
-                                  ? null
-                                  : nicknameController.text.trim(),
-                              color: selectedColor,
-                            );
+                          name: name,
+                          nickname: nicknameVal,
+                          color: selectedColor,
+                        );
                       } else {
                         success = await cubit.editPlayer(
-                              existingPlayer.copyWith(
-                                name: name,
-                                nickname: nicknameController.text.trim().isEmpty
-                                    ? null
-                                    : nicknameController.text.trim(),
-                                color: selectedColor,
-                              ),
-                            );
+                          existingPlayer.copyWith(
+                            name: name,
+                            nickname: nicknameVal,
+                            color: selectedColor,
+                          ),
+                        );
                       }
 
                       if (!success) {
@@ -207,18 +206,63 @@ class _RosterScreenState extends State<RosterScreen> {
         appBar: AppBar(
           title: const Text('PLAYER ROSTER'),
           actions: [
+            // Delete All Players button
             BlocBuilder<RosterCubit, RosterState>(
               builder: (context, state) {
-                final isSortedByLastPlayed =
-                    state is RosterLoaded && state.sortBy == 'last_played';
+                final hasPlayers = state is RosterLoaded && state.players.isNotEmpty;
+                if (!hasPlayers) return const SizedBox.shrink();
+
                 return IconButton(
-                  icon: Icon(
-                    isSortedByLastPlayed
-                        ? Icons.history_rounded
-                        : Icons.sort_by_alpha_rounded,
-                    color: AppColors.textPrimary,
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: AppColors.error,
                   ),
-                  tooltip: isSortedByLastPlayed ? 'Sorted by Recent' : 'Sorted by Name',
+                  tooltip: 'Remove All Players',
+                  onPressed: () async {
+                    final cubit = context.read<RosterCubit>();
+                    final count = state.players.length;
+                    final confirmed = await ConfirmDialog.show(
+                      context: context,
+                      title: 'Remove All Players?',
+                      message:
+                          'Are you sure you want to remove all $count players from your active roster? Past game stats will still be safely preserved.',
+                      confirmText: 'REMOVE ALL',
+                      confirmColor: AppColors.error,
+                      icon: Icons.delete_sweep_rounded,
+                    );
+
+                    if (confirmed && context.mounted) {
+                      await cubit.deleteAllPlayers();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('All players removed from roster'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                );
+              },
+            ),
+            // Sort / Order mode button
+            BlocBuilder<RosterCubit, RosterState>(
+              builder: (context, state) {
+                IconData sortIcon = Icons.swap_vert_rounded;
+                String sortTooltip = 'Sort: Custom Order (Drag to Reorder)';
+                if (state is RosterLoaded) {
+                  if (state.sortBy == 'name') {
+                    sortIcon = Icons.sort_by_alpha_rounded;
+                    sortTooltip = 'Sort: Alphabetical (A-Z)';
+                  } else if (state.sortBy == 'last_played') {
+                    sortIcon = Icons.history_rounded;
+                    sortTooltip = 'Sort: Recently Played';
+                  }
+                }
+
+                return IconButton(
+                  icon: Icon(sortIcon, color: AppColors.textPrimary),
+                  tooltip: sortTooltip,
                   onPressed: () => context.read<RosterCubit>().toggleSort(),
                 );
               },
@@ -293,9 +337,15 @@ class _RosterScreenState extends State<RosterScreen> {
                       );
                     }
 
-                    return ListView.builder(
+                    final canReorder = state.searchQuery.isEmpty && state.sortBy == 'custom';
+
+                    return ReorderableListView.builder(
+                      buildDefaultDragHandles: false,
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                       itemCount: players.length,
+                      onReorderItem: (oldIndex, newIndex) {
+                        context.read<RosterCubit>().reorderPlayers(oldIndex, newIndex);
+                      },
                       itemBuilder: (context, index) {
                         final player = players[index];
                         final lastPlayedFormatted = player.lastPlayedAt != null
@@ -303,10 +353,23 @@ class _RosterScreenState extends State<RosterScreen> {
                             : 'Never played';
 
                         return GlowCard(
+                          key: ValueKey(player.id ?? index),
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           onTap: () => _showAddEditPlayerDialog(existingPlayer: player),
                           child: Row(
                             children: [
+                              if (canReorder)
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(right: 10),
+                                    child: Icon(
+                                      Icons.drag_indicator_rounded,
+                                      color: AppColors.textMuted,
+                                      size: 22,
+                                    ),
+                                  ),
+                                ),
                               PlayerAvatar(
                                 name: player.name,
                                 colorValue: player.color,

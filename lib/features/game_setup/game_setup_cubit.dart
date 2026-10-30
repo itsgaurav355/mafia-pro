@@ -195,6 +195,16 @@ class GameSetupCubit extends Cubit<GameSetupState> {
     _updateSelection(<int>{}, []);
   }
 
+  Future<void> reorderAvailablePlayers(int oldIndex, int newIndex) async {
+    final list = List<Player>.from(state.availablePlayers);
+    final moved = list.removeAt(oldIndex);
+    list.insert(newIndex, moved);
+    emit(state.copyWith(availablePlayers: list));
+
+    final playerIds = list.map((p) => p.id!).toList();
+    await _playerRepo.reorderPlayers(playerIds);
+  }
+
   void addGuestPlayer(String guestName, int color, bool saveToRoster) async {
     final trimmed = guestName.trim();
     if (trimmed.isEmpty) return;

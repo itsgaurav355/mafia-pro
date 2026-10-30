@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+const Object _sentinel = Object();
+
 class Player extends Equatable {
   final int? id;
   final String name;
@@ -8,6 +10,7 @@ class Player extends Equatable {
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime? lastPlayedAt;
+  final int sortOrder;
 
   const Player({
     this.id,
@@ -17,6 +20,7 @@ class Player extends Equatable {
     this.isDeleted = false,
     required this.createdAt,
     this.lastPlayedAt,
+    this.sortOrder = 0,
   });
 
   String get displayName => (nickname != null && nickname!.trim().isNotEmpty)
@@ -26,20 +30,24 @@ class Player extends Equatable {
   Player copyWith({
     int? id,
     String? name,
-    String? nickname,
+    Object? nickname = _sentinel,
     int? color,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? lastPlayedAt,
+    int? sortOrder,
   }) {
     return Player(
       id: id ?? this.id,
       name: name ?? this.name,
-      nickname: nickname ?? this.nickname,
+      nickname: identical(nickname, _sentinel)
+          ? this.nickname
+          : (nickname as String?),
       color: color ?? this.color,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -52,6 +60,7 @@ class Player extends Equatable {
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
       'last_played_at': lastPlayedAt?.toIso8601String(),
+      'sort_order': sortOrder,
     };
   }
 
@@ -66,9 +75,10 @@ class Player extends Equatable {
       lastPlayedAt: map['last_played_at'] != null
           ? DateTime.parse(map['last_played_at'] as String)
           : null,
+      sortOrder: map['sort_order'] as int? ?? 0,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, nickname, color, isDeleted, createdAt, lastPlayedAt];
+  List<Object?> get props => [id, name, nickname, color, isDeleted, createdAt, lastPlayedAt, sortOrder];
 }

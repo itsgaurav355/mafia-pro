@@ -16,12 +16,12 @@ class RosterLoading extends RosterState {}
 class RosterLoaded extends RosterState {
   final List<Player> players;
   final String searchQuery;
-  final String sortBy; // 'name' or 'last_played'
+  final String sortBy; // 'custom', 'name', or 'last_played'
 
   const RosterLoaded({
     required this.players,
     this.searchQuery = '',
-    this.sortBy = 'name',
+    this.sortBy = 'custom',
   });
 
   @override
@@ -39,7 +39,7 @@ class RosterError extends RosterState {
 class RosterCubit extends Cubit<RosterState> {
   final PlayerRepository _playerRepository;
   String _currentQuery = '';
-  String _currentSort = 'name';
+  String _currentSort = 'custom';
 
   RosterCubit(this._playerRepository) : super(RosterInitial());
 
@@ -80,7 +80,13 @@ class RosterCubit extends Cubit<RosterState> {
   }
 
   void toggleSort() async {
-    _currentSort = _currentSort == 'name' ? 'last_played' : 'name';
+    if (_currentSort == 'custom') {
+      _currentSort = 'name';
+    } else if (_currentSort == 'name') {
+      _currentSort = 'last_played';
+    } else {
+      _currentSort = 'custom';
+    }
     await loadPlayers();
   }
 
@@ -92,23 +98,30 @@ class RosterCubit extends Cubit<RosterState> {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) return false;
 
-    // Check unique name case-insensitive (PRD F1)
     final existing = await _playerRepository.getPlayerByName(trimmedName);
     if (existing != null && !existing.isDeleted) {
       return false; // duplicate name
     }
 
+    final trimmedNickname = (nickname == null || nickname.trim().isEmpty) ? null : nickname.trim();
+
     if (existing != null && existing.isDeleted) {
-      // Re-activate soft-deleted player with updated properties
+      // Re-activate soft-deleted player with updated properties and append to bottom
+      final allPlayers = await _playerRepository.getPlayers(includeDeleted: true);
+      final nextOrder = allPlayers.isEmpty
+          ? 1
+          : (allPlayers.map((p) => p.sortOrder).fold<int>(0, (max, v) => v > max ? v : max) + 1);
+
       await _playerRepository.updatePlayer(existing.copyWith(
-        nickname: nickname?.trim(),
+        nickname: trimmedNickname,
         color: color,
         isDeleted: false,
+        sortOrder: nextOrder,
       ));
     } else {
       final newPlayer = Player(
         name: trimmedName,
-        nickname: nickname?.trim(),
+        nickname: trimmedNickname,
         color: color,
         createdAt: DateTime.now(),
       );
@@ -135,8 +148,34 @@ class RosterCubit extends Cubit<RosterState> {
     await loadPlayers();
   }
 
+  Future<void> deleteAllPlayers() async {
+    await _playerRepository.softDeleteAllPlayers();
+    await loadPlayers();
+  }
+
   Future<void> restorePlayer(int id) async {
     await _playerRepository.restorePlayer(id);
     await loadPlayers();
+  }
+
+  Future<void> reorderPlayers(int oldIndex, int newIndex) async {
+    if (state is! RosterLoaded) return;
+    final currentState = state as RosterLoaded;
+    if (currentState.sortBy != 'custom') return;
+
+    final items = List<Player>.from(currentState.players);
+    final movedItem = items.removeAt(oldIndex);
+    items.insert(newIndex, movedItem);
+
+    // Optimistically emit updated state
+    emit(RosterLoaded(
+      players: items,
+      searchQuery: currentState.searchQuery,
+      sortBy: currentState.sortBy,
+    ));
+
+    // Persist new order
+    final playerIds = items.map((p) => p.id!).toList();
+    await _playerRepository.reorderPlayers(playerIds);
   }
 }

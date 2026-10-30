@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import '../../core/constants/app_colors.dart';
 import '../../domain/roles/role_registry.dart';
 
 class DatabaseService {
@@ -32,17 +31,27 @@ class DatabaseService {
 
     return await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: (db, version) async {
         await _createSchema(db);
         await _seedRoles(db);
-        await _seedSamplePlayers(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        // Migration logic with PRAGMA user_version if schema changes in future
+        if (oldVersion < 2) {
+          try {
+            await db.execute('ALTER TABLE players ADD COLUMN sort_order INTEGER DEFAULT 0');
+            await db.execute('UPDATE players SET sort_order = id');
+          } catch (_) {}
+        }
+      },
+      onOpen: (db) async {
+        try {
+          await db.execute('ALTER TABLE players ADD COLUMN sort_order INTEGER DEFAULT 0');
+          await db.execute('UPDATE players SET sort_order = id WHERE sort_order = 0 OR sort_order IS NULL');
+        } catch (_) {}
       },
     );
   }
@@ -57,7 +66,8 @@ class DatabaseService {
         color INTEGER NOT NULL,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
-        last_played_at TEXT
+        last_played_at TEXT,
+        sort_order INTEGER DEFAULT 0
       )
     ''');
     await db.execute('CREATE INDEX idx_players_name ON players(name)');
@@ -167,33 +177,6 @@ class DatabaseService {
         'is_builtin': 1,
         'default_enabled': defaultEnabled,
         'default_count': defaultCount,
-      });
-    }
-    await batch.commit(noResult: true);
-  }
-
-  static Future<void> _seedSamplePlayers(Database db) async {
-    final now = DateTime.now().toIso8601String();
-    final samplePlayers = [
-      {'name': 'Vito', 'nickname': 'The Godfather', 'color': AppColors.playerAvatarColors[0].toARGB32()},
-      {'name': 'Sonny', 'nickname': 'Santino', 'color': AppColors.playerAvatarColors[1].toARGB32()},
-      {'name': 'Michael', 'nickname': 'Don Corleone', 'color': AppColors.playerAvatarColors[2].toARGB32()},
-      {'name': 'Tom Hagen', 'nickname': 'Consigliere', 'color': AppColors.playerAvatarColors[3].toARGB32()},
-      {'name': 'Luca Brasi', 'nickname': 'Enforcer', 'color': AppColors.playerAvatarColors[4].toARGB32()},
-      {'name': 'Clemenza', 'nickname': 'Caporegime', 'color': AppColors.playerAvatarColors[5].toARGB32()},
-      {'name': 'Fredo', 'nickname': 'Underdog', 'color': AppColors.playerAvatarColors[6].toARGB32()},
-      {'name': 'Kay Adams', 'nickname': 'Outsider', 'color': AppColors.playerAvatarColors[7].toARGB32()},
-    ];
-
-    final batch = db.batch();
-    for (final p in samplePlayers) {
-      batch.insert('players', {
-        'name': p['name'],
-        'nickname': p['nickname'],
-        'color': p['color'],
-        'is_deleted': 0,
-        'created_at': now,
-        'last_played_at': null,
       });
     }
     await batch.commit(noResult: true);

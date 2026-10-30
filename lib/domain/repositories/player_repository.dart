@@ -7,7 +7,9 @@ abstract class PlayerRepository {
   Future<int> insertPlayer(Player player);
   Future<int> updatePlayer(Player player);
   Future<int> softDeletePlayer(int id);
+  Future<void> softDeleteAllPlayers();
   Future<int> restorePlayer(int id);
   Future<void> updateLastPlayed(List<int> playerIds, DateTime timestamp);
   Future<int> countActivePlayers();
+  Future<void> reorderPlayers(List<int> playerIds);
 }

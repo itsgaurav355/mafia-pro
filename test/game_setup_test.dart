@@ -21,8 +21,10 @@ class FakePlayerRepo implements PlayerRepository {
   @override Future<int> insertPlayer(Player player) async => 9;
   @override Future<int> restorePlayer(int id) async => 1;
   @override Future<int> softDeletePlayer(int id) async => 1;
+  @override Future<void> softDeleteAllPlayers() async {}
   @override Future<void> updateLastPlayed(List<int> playerIds, DateTime timestamp) async {}
   @override Future<int> updatePlayer(Player player) async => 1;
+  @override Future<void> reorderPlayers(List<int> playerIds) async {}
 }
 
 class FakeRoleRepo implements RoleRepository {

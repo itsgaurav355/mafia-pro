@@ -307,57 +307,125 @@ class _SelectPlayersScreenState extends State<SelectPlayersScreen> {
                               ? 'Your roster is empty. Add players from the Roster tab or quick add a guest.'
                               : 'No players match your search filter.',
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final player = filtered[index];
-                            final isSelected = state.selectedPlayerIds.contains(player.id);
+                      : _filter.isEmpty
+                          ? ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                              itemCount: filtered.length,
+                              onReorderItem: (oldIndex, newIndex) {
+                                context.read<GameSetupCubit>().reorderAvailablePlayers(oldIndex, newIndex);
+                              },
+                              itemBuilder: (context, index) {
+                                final player = filtered[index];
+                                final isSelected = state.selectedPlayerIds.contains(player.id);
 
-                            return GlowCard(
-                              isSelected: isSelected,
-                              glowColor: AppColors.mafiaGlow,
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              onTap: () => context.read<GameSetupCubit>().togglePlayer(player.id!),
-                              child: Row(
-                                children: [
-                                  PlayerAvatar(
-                                    name: player.name,
-                                    colorValue: player.color,
-                                    radius: 20,
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Text(
-                                      player.displayName,
-                                      style: TextStyle(
-                                        color: isSelected ? Colors.white : AppColors.textSecondary,
-                                        fontSize: 15,
-                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                return GlowCard(
+                                  key: ValueKey(player.id ?? index),
+                                  isSelected: isSelected,
+                                  glowColor: AppColors.mafiaGlow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  onTap: () => context.read<GameSetupCubit>().togglePlayer(player.id!),
+                                  child: Row(
+                                    children: [
+                                      ReorderableDragStartListener(
+                                        index: index,
+                                        child: const Padding(
+                                          padding: EdgeInsets.only(right: 10),
+                                          child: Icon(
+                                            Icons.drag_indicator_rounded,
+                                            color: AppColors.textMuted,
+                                            size: 20,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: 26,
-                                    height: 26,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isSelected ? AppColors.mafia : Colors.transparent,
-                                      border: Border.all(
-                                        color: isSelected ? AppColors.mafia : AppColors.surfaceBorderLight,
-                                        width: 2,
+                                      PlayerAvatar(
+                                        name: player.name,
+                                        colorValue: player.color,
+                                        radius: 20,
                                       ),
-                                    ),
-                                    child: isSelected
-                                        ? const Icon(Icons.check, color: Colors.white, size: 16)
-                                        : null,
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          player.displayName,
+                                          style: TextStyle(
+                                            color: isSelected ? Colors.white : AppColors.textSecondary,
+                                            fontSize: 15,
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: 26,
+                                        height: 26,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isSelected ? AppColors.mafia : Colors.transparent,
+                                          border: Border.all(
+                                            color: isSelected ? AppColors.mafia : AppColors.surfaceBorderLight,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: isSelected
+                                            ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                            : null,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                );
+                              },
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final player = filtered[index];
+                                final isSelected = state.selectedPlayerIds.contains(player.id);
+
+                                return GlowCard(
+                                  isSelected: isSelected,
+                                  glowColor: AppColors.mafiaGlow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  onTap: () => context.read<GameSetupCubit>().togglePlayer(player.id!),
+                                  child: Row(
+                                    children: [
+                                      PlayerAvatar(
+                                        name: player.name,
+                                        colorValue: player.color,
+                                        radius: 20,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          player.displayName,
+                                          style: TextStyle(
+                                            color: isSelected ? Colors.white : AppColors.textSecondary,
+                                            fontSize: 15,
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: 26,
+                                        height: 26,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isSelected ? AppColors.mafia : Colors.transparent,
+                                          border: Border.all(
+                                            color: isSelected ? AppColors.mafia : AppColors.surfaceBorderLight,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: isSelected
+                                            ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                 ),
               ],
             );
