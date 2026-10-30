@@ -23,8 +23,8 @@ Pre-compiled production releases for both **Android** and **iOS** are available 
 
 | Platform | Format | Release File | Size | Compatibility | Installation Method |
 | :--- | :---: | :--- | :---: | :---: | :--- |
-| **Android** | `.apk` | [**`releases/MafiaPro-v1.0.0.apk`**](file:///Users/gauravprajapati/Desktop/Gaurav%20Work/mafia_pro/releases/MafiaPro-v1.0.0.apk) | `~59 MB` | Android 7.0+ (API 24+) | Direct APK Install / Sideloading |
-| **iOS** | `.ipa` | [**`releases/MafiaPro-v1.0.0.ipa`**](file:///Users/gauravprajapati/Desktop/Gaurav%20Work/mafia_pro/releases/MafiaPro-v1.0.0.ipa) | `~8.4 MB` | iOS 13.0+ | AltStore / Sideloadly / TrollStore / Xcode |
+| **Android** | `.apk` | [**`releases/MafiaPro-v1.0.0.apk`**](file:///Users/gauravprajapati/Desktop/Gaurav%20Work/mafia_pro/releases/MafiaPro-v1.0.0.apk) | `~63 MB` | Android 7.0+ (API 24+) | Direct APK Install / Sideloading |
+| **iOS** | `.ipa` | [**`releases/MafiaPro-v1.0.0.ipa`**](file:///Users/gauravprajapati/Desktop/Gaurav%20Work/mafia_pro/releases/MafiaPro-v1.0.0.ipa) | `~8.7 MB` | iOS 13.0+ | AltStore / Sideloadly / TrollStore / Xcode |
 | **iOS (App)** | `.app` | [`build/ios/iphoneos/Runner.app`](file:///Users/gauravprajapati/Desktop/Gaurav%20Work/mafia_pro/build/ios/iphoneos/Runner.app) | `~21 MB` | iOS 13.0+ (ARM64) | Xcode / Apple Configurator deployment |
 
 ### 📲 How to Install the Builds

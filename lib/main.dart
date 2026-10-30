@@ -21,16 +21,26 @@ void main() async {
   // Initialize dependencies
   await setupServiceLocator();
 
-  // Prevent device screen from falling asleep during live game sessions
+  // Check if first launch onboarding is needed with safe fallback
+  bool hasSeen = false;
   try {
-    await WakelockPlus.enable();
-  } catch (_) {
-    // Graceful fallback on unsupported platforms
+    final settingsRepo = getIt<SettingsRepository>();
+    hasSeen = await settingsRepo.hasSeenOnboarding().timeout(
+      const Duration(seconds: 2),
+      onTimeout: () => false,
+    );
+  } catch (e) {
+    debugPrint('Safe onboarding initialization fallback: $e');
   }
 
-  // Check if first launch onboarding is needed
-  final settingsRepo = getIt<SettingsRepository>();
-  final hasSeen = await settingsRepo.hasSeenOnboarding();
-
   runApp(MafiaProApp(initialHasSeenOnboarding: hasSeen));
+
+  // Enable screen wakelock smoothly after UI is rendered
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
+      WakelockPlus.enable();
+    } catch (_) {
+      // Graceful fallback on unsupported platforms
+    }
+  });
 }
